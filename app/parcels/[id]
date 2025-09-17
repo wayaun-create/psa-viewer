@@ -1,0 +1,46 @@
+type TrackingEvent = { eventTime:string; statusCode:string; location?:string };
+type MailItem = { mailPackage:{ certifiedNumber:string; mailClass:string; submittedAt:string }, trackingEvents:TrackingEvent[] };
+type Notice = { id:string; noticeType:string; preparedAt:string|null };
+type Parcel = {
+  id:string; parcelNumber:string; county:string|null; status:string|null;
+  taxSale?: { name:string; saleDate:string|null };
+  notices: Notice[]; mailItems: MailItem[];
+};
+
+async function fetchParcel(id:string): Promise<Parcel> {
+  const base = process.env.NEXT_PUBLIC_API_BASE!;
+  const r = await fetch(`${base}/v1/parcels/${id}`, { cache: "no-store" });
+  if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+export default async function ParcelPage({ params }:{ params:{ id:string } }) {
+  const parcel = await fetchParcel(params.id);
+  return (
+    <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
+      <h1>Parcel {parcel.parcelNumber}</h1>
+      <p><b>County:</b> {parcel.county} &nbsp; <b>Status:</b> {parcel.status}</p>
+      {parcel.taxSale && <p><b>Tax Sale:</b> {parcel.taxSale.name} ({parcel.taxSale.saleDate})</p>}
+
+      <h2>Notices</h2>
+      {parcel.notices.length ? (
+        <ul>{parcel.notices.map(n => (
+          <li key={n.id}>{n.noticeType} — {n.preparedAt ?? "pending"}</li>
+        ))}</ul>
+      ) : <p>No notices yet.</p>}
+
+      <h2>Mail</h2>
+      {parcel.mailItems.length ? parcel.mailItems.map(mi => (
+        <div key={mi.mailPackage.certifiedNumber} style={{ marginBottom: 12 }}>
+          <p>
+            <b>{mi.mailPackage.certifiedNumber}</b> · {mi.mailPackage.mailClass}
+            {mi.mailPackage.submittedAt ? ` · sent ${mi.mailPackage.submittedAt}` : ""}
+          </p>
+          <ul>{mi.trackingEvents.map(te => (
+            <li key={te.eventTime}>{te.statusCode} · {te.location} · {te.eventTime}</li>
+          ))}</ul>
+        </div>
+      )) : <p>No mail yet.</p>}
+    </main>
+  );
+}

@@ -28,7 +28,7 @@ export default async function ParcelsPage() {
         <tbody>
           {data.items.map(p => (
             <tr key={p.id}>
-              <td style={{ padding: 8 }}>{p.parcelNumber}</td>
+              <td style={{ padding: 8 }}><a href={`/parcels/${p.id}`}>{p.parcelNumber}</a></td>
               <td style={{ padding: 8 }}>{p.county}</td>
               <td style={{ padding: 8 }}>{p.status}</td>
             </tr>
